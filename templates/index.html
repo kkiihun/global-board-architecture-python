@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>📋 게시판 목록</h2>
+            {% if user %}
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#writeModal">
+                    + 글쓰기
+                </button>
+            {% endif %}
+        </div>
+
+        {% for post in posts %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">{{ post.title }}</h5>
+                <p class="card-text text-muted" style="white-space: pre-wrap;">{{ post.content }}</p>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <small class="text-secondary">작성자 ID: {{ post.owner_id }}</small>
+                    
+                    {% if user and user.id == post.owner_id %}
+                        <div>
+                            <button onclick="openEditModal('{{ post.id }}', '{{ post.title }}', `{{ post.content }}`)" 
+                                    class="btn btn-sm btn-outline-primary me-1">수정</button>
+                            
+                            <button onclick="deletePost({{ post.id }})" 
+                                    class="btn btn-sm btn-outline-danger">삭제</button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+            <div class="alert alert-info text-center">
+                작성된 글이 없습니다. 첫 글을 남겨보세요!
+            </div>
+        {% endfor %}
+    </div> </div> <div class="modal fade" id="writeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">새 글 작성</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="postTitle" class="form-control mb-2" placeholder="제목">
+                <textarea id="postContent" class="form-control" rows="5" placeholder="내용"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button onclick="savePost()" class="btn btn-primary">저장</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">글 수정하기</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editPostId">
+                <input type="text" id="editTitle" class="form-control mb-2" placeholder="제목">
+                <textarea id="editContent" class="form-control" rows="5" placeholder="내용"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button onclick="updatePost()" class="btn btn-primary">수정 완료</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- [글쓰기 기능] ---
+    async function savePost() {
+        const title = document.getElementById('postTitle').value;
+        const content = document.getElementById('postContent').value;
+
+        if(!title || !content) {
+            alert("제목과 내용을 입력해주세요.");
+            return;
+        }
+
+        const res = await fetch('/posts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, content })
+        });
+
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert("글쓰기 실패 (로그인 필요)");
+        }
+    }
+
+    // --- [삭제 기능] ---
+    async function deletePost(postId) {
+        if (!confirm("정말 삭제할까요?")) return;
+        
+        const res = await fetch(`/posts/${postId}`, { method: 'DELETE' });
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert("삭제 권한이 없거나 오류가 발생했습니다.");
+        }
+    }
+
+    // --- [수정 기능] ---
+    function openEditModal(id, title, content) {
+        // 기존 글 내용을 모달창에 채워넣기
+        document.getElementById('editPostId').value = id;
+        document.getElementById('editTitle').value = title;
+        document.getElementById('editContent').value = content;
+
+        // 모달창 띄우기
+        var myModal = new bootstrap.Modal(document.getElementById('editModal'));
+        myModal.show();
+    }
+
+    async function updatePost() {
+        const id = document.getElementById('editPostId').value;
+        const title = document.getElementById('editTitle').value;
+        const content = document.getElementById('editContent').value;
+
+        const res = await fetch(`/posts/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, content })
+        });
+
+        if (res.ok) {
+            alert("수정되었습니다!");
+            location.reload();
+        } else {
+            alert("수정 실패 (본인 글이 아니거나 오류)");
+        }
+    }
+</script>
+{% endblock %}

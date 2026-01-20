@@ -1,0 +1,8 @@
+﻿venv/
+__pycache__/
+*.pyc
+test.db
+*.sqlite
+*.sqlite3
+.env
+.DS_Store
